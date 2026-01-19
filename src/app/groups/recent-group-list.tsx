@@ -7,10 +7,17 @@ import {
   getStarredGroups,
 } from '@/app/groups/recent-groups-helpers'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { RestoreBackupButton } from '@/components/restore-backup-button'
 import { getGroups } from '@/lib/api'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
-import { Loader2 } from 'lucide-react'
+import { Loader2, MoreVertical } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { PropsWithChildren, useEffect, useState } from 'react'
@@ -19,18 +26,18 @@ import { RecentGroupListCard } from './recent-group-list-card'
 export type RecentGroupsState =
   | { status: 'pending' }
   | {
-      status: 'partial'
-      groups: RecentGroups
-      starredGroups: string[]
-      archivedGroups: string[]
-    }
+    status: 'partial'
+    groups: RecentGroups
+    starredGroups: string[]
+    archivedGroups: string[]
+  }
   | {
-      status: 'complete'
-      groups: RecentGroups
-      groupsDetails: Awaited<ReturnType<typeof getGroups>>
-      starredGroups: string[]
-      archivedGroups: string[]
-    }
+    status: 'complete'
+    groups: RecentGroups
+    groupsDetails: Awaited<ReturnType<typeof getGroups>>
+    starredGroups: string[]
+    archivedGroups: string[]
+  }
 
 function sortGroups({
   groups,
@@ -222,6 +229,8 @@ function GroupsPage({
   reload,
 }: PropsWithChildren<{ reload: () => void }>) {
   const t = useTranslations('Groups')
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -229,6 +238,18 @@ function GroupsPage({
           <Link href="/groups">{t('myGroups')}</Link>
         </h1>
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setShowRestoreDialog(true)}>
+                {t('restoreBackup')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <AddGroupByUrlButton reload={reload} />
           <Button asChild>
             <Link href="/groups/create">
@@ -239,6 +260,13 @@ function GroupsPage({
         </div>
       </div>
       <div>{children}</div>
+
+      {showRestoreDialog && (
+        <RestoreBackupButton
+          open={showRestoreDialog}
+          onOpenChange={setShowRestoreDialog}
+        />
+      )}
     </>
   )
 }

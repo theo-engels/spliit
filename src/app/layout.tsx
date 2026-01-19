@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react'
 import { ApplePwaSplash } from '@/app/apple-pwa-splash'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { ProgressBar } from '@/components/progress-bar'
@@ -169,6 +170,7 @@ export default async function RootLayout({
               <ProgressBar />
             </Suspense>
             <Content>{children}</Content>
+            <Analytics />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
