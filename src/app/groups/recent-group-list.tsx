@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { RestoreBackupButton } from '@/components/restore-backup-button'
+import { ImportJSONButton } from '@/components/import-json-button'
 import { getGroups } from '@/lib/api'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
@@ -230,6 +231,7 @@ function GroupsPage({
 }: PropsWithChildren<{ reload: () => void }>) {
   const t = useTranslations('Groups')
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+  const [showImportJSONDialog, setShowImportJSONDialog] = useState(false)
 
   return (
     <>
@@ -248,6 +250,9 @@ function GroupsPage({
               <DropdownMenuItem onSelect={() => setShowRestoreDialog(true)}>
                 {t('restoreBackup')}
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowImportJSONDialog(true)}>
+                {t('importJSON')}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <AddGroupByUrlButton reload={reload} />
@@ -265,6 +270,13 @@ function GroupsPage({
         <RestoreBackupButton
           open={showRestoreDialog}
           onOpenChange={setShowRestoreDialog}
+        />
+      )}
+
+      {showImportJSONDialog && (
+        <ImportJSONButton
+          open={showImportJSONDialog}
+          onOpenChange={setShowImportJSONDialog}
         />
       )}
     </>
