@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { StarFilledIcon } from '@radix-ui/react-icons'
-import { Calendar, MoreHorizontal, Star, Users } from 'lucide-react'
+import { Calendar, Archive, MoreHorizontal, Star, Users } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -39,6 +39,7 @@ export function RecentGroupListCard({
   const locale = useLocale()
   const toast = useToast()
   const t = useTranslations('Groups')
+  const tExpenses = useTranslations('Expenses')
 
   return (
     <li key={group.id}>
@@ -120,6 +121,22 @@ export function RecentGroupListCard({
                       }}
                     >
                       {t(isArchived ? 'unarchive' : 'archive')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        prefetch={false}
+                        href={`/groups/${group.id}/backup/export`}
+                        target="_blank"
+                        title={tExpenses('exportBackup')}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Archive className="w-4 h-4" />
+                          <p>{tExpenses('exportBackup')}</p>
+                        </div>
+                      </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

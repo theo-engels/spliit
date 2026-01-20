@@ -24,19 +24,6 @@ export default function ExportButton({ groupId }: { groupId: string }) {
         <DropdownMenuItem asChild>
           <Link
             prefetch={false}
-            href={`/groups/${groupId}/backup/export`}
-            target="_blank"
-            title={t('exportBackup')}
-          >
-            <div className="flex items-center gap-2">
-              <Archive className="w-4 h-4" />
-              <p>{t('exportBackup')}</p>
-            </div>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            prefetch={false}
             href={`/groups/${groupId}/expenses/export/json`}
             target="_blank"
             title={t('exportJson')}
