@@ -66,6 +66,14 @@
     "archive": "Archive group",
     "unarchive": "Unarchive group",
     "removeRecent": "Remove from recent groups",
+    "deleteGroup": "Delete group permanently",
+    "DeleteGroupDialog": {
+      "title": "Delete group permanently?",
+      "description": "This action cannot be undone. All expenses, participants, and activity history will be permanently deleted. Please create a backup first if you want to preserve this data.",
+      "backup": "Create Backup",
+      "cancel": "Cancel",
+      "delete": "Delete Permanently"
+    },
     "RecentRemovedToast": {
       "title": "Group has been removed",
       "description": "The group was removed from your recent groups list.",

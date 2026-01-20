@@ -124,6 +124,7 @@ export function RestoreBackupButton({
                 error?: string
                 mode?: string
                 message?: string
+                warnings?: string[]
             }
 
             if (!response.ok) {
@@ -134,6 +135,20 @@ export function RestoreBackupButton({
             if (!data.groupId) {
                 setError('Invalid response from server')
                 return
+            }
+
+            // Show warnings if any documents were missing
+            if (data.warnings && data.warnings.length > 0) {
+                const warningMessage = [
+                    'Backup restored successfully, but some issues were found:',
+                    '',
+                    ...data.warnings,
+                    '',
+                    'The group was restored without these missing documents.',
+                ].join('\n')
+
+                // eslint-disable-next-line no-alert
+                alert(warningMessage)
             }
 
             // Redirect to the restored group

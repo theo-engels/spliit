@@ -7,6 +7,8 @@ import {
   RecurringExpenseLink,
 } from '@prisma/client'
 import { nanoid } from 'nanoid'
+import { env } from '@/lib/env'
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 export function randomId() {
   return nanoid()
@@ -81,8 +83,8 @@ export async function createExpense(
       recurringExpenseLink: {
         ...(isCreateRecurrence
           ? {
-              create: recurringExpenseLinkPayload,
-            }
+            create: recurringExpenseLinkPayload,
+          }
           : {}),
       },
       paidFor: {
@@ -250,15 +252,15 @@ export async function updateExpense(
       recurringExpenseLink: {
         ...(isCreateRecurrenceExpenseLink
           ? {
-              create: newRecurringExpenseLink,
-            }
+            create: newRecurringExpenseLink,
+          }
           : {}),
         ...(isUpdateRecurrenceExpenseLink
           ? {
-              update: {
-                nextExpenseDate: updatedRecurrenceExpenseLinkNextExpenseDate,
-              },
-            }
+            update: {
+              nextExpenseDate: updatedRecurrenceExpenseLinkNextExpenseDate,
+            },
+          }
           : {}),
         delete: isDeleteRecurrenceExpenseLink,
       },
@@ -326,6 +328,66 @@ export async function updateGroup(
   })
 }
 
+export async function deleteGroup(groupId: string) {
+  return prisma.group.delete({
+    where: { id: groupId },
+  })
+}
+
+export async function deleteGroupWithDocuments(
+  groupId: string,
+  deleteDocuments: boolean,
+) {
+  // Get all documents for this group's expenses
+  const documents = await prisma.expenseDocument.findMany({
+    where: {
+      Expense: {
+        groupId: groupId,
+      },
+    },
+  })
+
+  // Delete S3 documents if requested
+  if (
+    deleteDocuments &&
+    documents.length > 0 &&
+    env.S3_UPLOAD_BUCKET &&
+    env.S3_UPLOAD_REGION &&
+    env.S3_UPLOAD_KEY &&
+    env.S3_UPLOAD_SECRET
+  ) {
+    const s3Client = new S3Client({
+      region: env.S3_UPLOAD_REGION,
+      credentials: {
+        accessKeyId: env.S3_UPLOAD_KEY,
+        secretAccessKey: env.S3_UPLOAD_SECRET,
+      },
+      ...(env.S3_UPLOAD_ENDPOINT && { endpoint: env.S3_UPLOAD_ENDPOINT }),
+    })
+
+    for (const doc of documents) {
+      const key = doc.url.split('/').pop()
+      if (key) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: env.S3_UPLOAD_BUCKET,
+              Key: key,
+            }),
+          )
+        } catch (error) {
+          console.error(`Failed to delete S3 object: ${key}`, error)
+        }
+      }
+    }
+  }
+
+  // Delete the group and all related data (cascade deletes)
+  return prisma.group.delete({
+    where: { id: groupId },
+  })
+}
+
 export async function getGroup(groupId: string) {
   return prisma.group.findUnique({
     where: { id: groupId },
@@ -335,6 +397,16 @@ export async function getGroup(groupId: string) {
 
 export async function getCategories() {
   return prisma.category.findMany()
+}
+
+export async function getGroupDocumentCount(groupId: string) {
+  return prisma.expenseDocument.count({
+    where: {
+      Expense: {
+        groupId: groupId,
+      },
+    },
+  })
 }
 
 export async function getGroupExpenses(

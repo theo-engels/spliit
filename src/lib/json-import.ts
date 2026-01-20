@@ -197,8 +197,8 @@ export async function restoreGroupFromJSON(
     mode: 'create' | 'update' | 'rollback',
 ): Promise<void> {
     const importTime = new Date()
-    
-    
+
+
     if (mode === 'create') {
         // Create new group
         await tx.group.create({
@@ -230,8 +230,8 @@ export async function restoreGroupFromJSON(
 
         // Verify all participants exist and create a map
         const participantIds = new Set(jsonData.participants.map(p => p.id))
-        
-        
+
+
         // Create categories and expenses
         for (const expense of jsonData.expenses) {
             // Validate participant IDs

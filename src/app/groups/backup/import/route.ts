@@ -94,8 +94,10 @@ export async function POST(req: Request) {
             }
 
             // Execute restore in a transaction
+            let warnings: string[] = []
             await prisma.$transaction(async (tx) => {
-                await restoreGroupFromBackup(tx, backupData, mode)
+                const result = await restoreGroupFromBackup(tx, backupData, mode)
+                warnings = result.warnings
             })
 
             return NextResponse.json({
@@ -103,6 +105,7 @@ export async function POST(req: Request) {
                 message: `Group ${mode === 'create' ? 'created' : mode === 'rollback' ? 'rolled back' : 'updated'} successfully`,
                 groupId: backupData.group.id,
                 mode,
+                warnings: warnings.length > 0 ? warnings : undefined,
             })
         }
 

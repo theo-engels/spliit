@@ -62,7 +62,7 @@ export async function POST(req: Request) {
                 groupName: jsonData.name,
                 warnings: [
                     'JSON import has limitations:',
-                    '• Activity history will not be preserved',
+                    '• Activity history is not preserved, it will be regenerated',
                     '• Document attachments will not be imported',
                     '• Notes on expenses will not be imported',
                     '• Recurring expense links will not be imported',

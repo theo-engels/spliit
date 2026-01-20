@@ -1,5 +1,15 @@
 import { Prisma } from '@prisma/client'
 
+// Helper to check if a URL is accessible
+async function checkUrlExists(url: string): Promise<boolean> {
+    try {
+        const response = await fetch(url, { method: 'HEAD' })
+        return response.ok
+    } catch {
+        return false
+    }
+}
+
 export type BackupData = {
     version: string
     exportedAt: string
@@ -167,8 +177,9 @@ export async function restoreGroupFromBackup(
     prisma: Prisma.TransactionClient,
     backupData: BackupData,
     mode: 'create' | 'update' | 'rollback',
-) {
+): Promise<{ success: boolean; warnings: string[] }> {
     const { group, participants, expenses, activities } = backupData
+    const warnings: string[] = []
 
     if (mode === 'create') {
         // Create new group with all data
@@ -267,17 +278,22 @@ export async function restoreGroupFromBackup(
                 })
             }
 
-            // Create documents
+            // Create documents (check if URLs exist first)
             for (const doc of expense.documents) {
-                await prisma.expenseDocument.create({
-                    data: {
-                        id: doc.id,
-                        url: doc.url,
-                        width: doc.width,
-                        height: doc.height,
-                        expenseId: expense.id,
-                    },
-                })
+                const urlExists = await checkUrlExists(doc.url)
+                if (urlExists) {
+                    await prisma.expenseDocument.create({
+                        data: {
+                            id: doc.id,
+                            url: doc.url,
+                            width: doc.width,
+                            height: doc.height,
+                            expenseId: expense.id,
+                        },
+                    })
+                } else {
+                    warnings.push(`Document not found for expense "${expense.title}": ${doc.url}`)
+                }
             }
 
             // Create recurring expense link if exists
@@ -336,15 +352,20 @@ export async function restoreGroupFromBackup(
                 }
 
                 for (const doc of expense.documents) {
-                    await prisma.expenseDocument.create({
-                        data: {
-                            id: doc.id,
-                            url: doc.url,
-                            width: doc.width,
-                            height: doc.height,
-                            expenseId: expense.id,
-                        },
-                    })
+                    const urlExists = await checkUrlExists(doc.url)
+                    if (urlExists) {
+                        await prisma.expenseDocument.create({
+                            data: {
+                                id: doc.id,
+                                url: doc.url,
+                                width: doc.width,
+                                height: doc.height,
+                                expenseId: expense.id,
+                            },
+                        })
+                    } else {
+                        warnings.push(`Document not found for expense "${expense.title}": ${doc.url}`)
+                    }
                 }
             }
         }
@@ -367,5 +388,5 @@ export async function restoreGroupFromBackup(
         }
     }
 
-    return { success: true }
+    return { success: true, warnings }
 }

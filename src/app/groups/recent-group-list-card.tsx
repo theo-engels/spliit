@@ -13,14 +13,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { DeleteGroupDialog } from '@/components/delete-group-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { StarFilledIcon } from '@radix-ui/react-icons'
-import { Calendar, Archive, MoreHorizontal, Star, Users } from 'lucide-react'
+import { Calendar, Archive, MoreHorizontal, Star, Users, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export function RecentGroupListCard({
   group,
@@ -40,6 +42,7 @@ export function RecentGroupListCard({
   const toast = useToast()
   const t = useTranslations('Groups')
   const tExpenses = useTranslations('Expenses')
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   return (
     <li key={group.id}>
@@ -138,6 +141,18 @@ export function RecentGroupListCard({
                         </div>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setShowDeleteDialog(true)
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" />
+                        <p>{t('deleteGroup')}</p>
+                      </div>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </span>
@@ -171,6 +186,13 @@ export function RecentGroupListCard({
           </div>
         </div>
       </Button>
+
+      <DeleteGroupDialog
+        groupId={group.id}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onSuccess={() => refreshGroupsFromStorage()}
+      />
     </li>
   )
 }
