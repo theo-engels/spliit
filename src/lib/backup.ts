@@ -282,9 +282,17 @@ export async function restoreGroupFromBackup(
             for (const doc of expense.documents) {
                 const urlExists = await checkUrlExists(doc.url)
                 if (urlExists) {
-                    await prisma.expenseDocument.create({
-                        data: {
+                    // Use upsert to handle existing documents
+                    await prisma.expenseDocument.upsert({
+                        where: { id: doc.id },
+                        create: {
                             id: doc.id,
+                            url: doc.url,
+                            width: doc.width,
+                            height: doc.height,
+                            expenseId: expense.id,
+                        },
+                        update: {
                             url: doc.url,
                             width: doc.width,
                             height: doc.height,
@@ -354,9 +362,17 @@ export async function restoreGroupFromBackup(
                 for (const doc of expense.documents) {
                     const urlExists = await checkUrlExists(doc.url)
                     if (urlExists) {
-                        await prisma.expenseDocument.create({
-                            data: {
+                        // Use upsert to handle existing documents
+                        await prisma.expenseDocument.upsert({
+                            where: { id: doc.id },
+                            create: {
                                 id: doc.id,
+                                url: doc.url,
+                                width: doc.width,
+                                height: doc.height,
+                                expenseId: expense.id,
+                            },
+                            update: {
                                 url: doc.url,
                                 width: doc.width,
                                 height: doc.height,
