@@ -54,7 +54,8 @@ import {
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RecurrenceRule } from '@prisma/client'
-import { ChevronRight, Save } from 'lucide-react'
+import { Calculator, ChevronRight, Save } from 'lucide-react'
+import { AmountCalculator } from './amount-calculator'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -64,6 +65,8 @@ import { match } from 'ts-pattern'
 import { DeletePopup } from '../../../../components/delete-popup'
 import { extractCategoryFromTitle } from '../../../../components/expense-form-actions'
 import { Textarea } from '../../../../components/ui/textarea'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 const enforceCurrencyPattern = (value: string) =>
   value
@@ -609,8 +612,8 @@ export function ExpenseForm({
                     render={({ field: { onChange, ...field } }) => (
                       <FormItem
                         className={`sm:order-4 ${!conversionRequired
-                            ? 'max-sm:hidden sm:invisible'
-                            : ''
+                          ? 'max-sm:hidden sm:invisible'
+                          : ''
                           }`}
                       >
                         <FormLabel>{t('conversionRateField.label')}</FormLabel>
@@ -676,25 +679,46 @@ export function ExpenseForm({
                   <div className="flex items-baseline gap-2">
                     <span>{group.currency}</span>
                     <FormControl>
-                      <Input
-                        className="text-base max-w-[120px]"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        onChange={(event) => {
-                          const v = enforceCurrencyPattern(event.target.value)
-                          const income = Number(v) < 0
-                          setIsIncome(income)
-                          if (income) form.setValue('isReimbursement', false)
-                          onChange(v)
-                        }}
-                        onFocus={(e) => {
-                          // we're adding a small delay to get around safaris issue with onMouseUp deselecting things again
-                          const target = e.currentTarget
-                          setTimeout(() => target.select(), 1)
-                        }}
-                        {...field}
-                      />
+                      <InputGroup className="text-base max-w-[120px]">
+                        <InputGroupInput
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          onChange={(event) => {
+                            const v = enforceCurrencyPattern(event.target.value)
+                            const income = Number(v) < 0
+                            setIsIncome(income)
+                            if (income) form.setValue('isReimbursement', false)
+                            onChange(v)
+                          }}
+                          onFocus={(e) => {
+                            // we're adding a small delay to get around safaris issue with onMouseUp deselecting things again
+                            const target = e.currentTarget
+                            setTimeout(() => target.select(), 1)
+                          }}
+                          {...field}
+                        />
+                        <InputGroupAddon className='pr-0' align="inline-end">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Calculator/>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent side='right' className="w-auto p-3">
+                              <AmountCalculator 
+                                initialValue={String(field.value || '')}
+                                onApply={(value) => {
+                                  const income = Number(value) < 0
+                                  setIsIncome(income)
+                                  if (income) form.setValue('isReimbursement', false)
+                                  onChange(value)
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </InputGroupAddon>
+                      </InputGroup>
                     </FormControl>
                   </div>
                   <FormMessage />
