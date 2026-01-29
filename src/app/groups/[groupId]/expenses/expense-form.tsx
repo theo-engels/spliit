@@ -272,6 +272,7 @@ export function ExpenseForm({
         },
   })
   const [isCategoryLoading, setCategoryLoading] = useState(false)
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
   const activeUserId = useActiveUser(group.id)
 
   const submit = async (values: ExpenseFormValues) => {
@@ -699,7 +700,7 @@ export function ExpenseForm({
                           {...field}
                         />
                         <InputGroupAddon className='pr-0' align="inline-end">
-                          <Popover>
+                          <Popover open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
                             <PopoverTrigger asChild>
                               <Button variant="ghost" size="icon">
                                 <Calculator/>
@@ -713,6 +714,7 @@ export function ExpenseForm({
                                   setIsIncome(income)
                                   if (income) form.setValue('isReimbursement', false)
                                   onChange(value)
+                                  setIsCalculatorOpen(false)
                                 }}
                               />
                             </PopoverContent>
