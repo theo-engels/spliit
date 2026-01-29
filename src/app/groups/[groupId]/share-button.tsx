@@ -1,6 +1,5 @@
 'use client'
 import { CopyButton } from '@/components/copy-button'
-import { ShareQrCodeDialog } from '@/components/share-qr-code-dialog'
 import { ShareUrlButton } from '@/components/share-url-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,7 +39,6 @@ export function ShareButton({ group }: Props) {
               text={`Join my group ${group.name} on Spliit`}
               url={url}
             />
-            <ShareQrCodeDialog url={url} groupName={group.name} />
           </div>
         )}
         <p>

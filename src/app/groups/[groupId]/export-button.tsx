@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Download, FileDown, FileJson } from 'lucide-react'
+import { Archive, Download, FileDown, FileJson } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 

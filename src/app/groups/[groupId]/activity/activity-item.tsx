@@ -18,10 +18,14 @@ type Props = {
   dateStyle: DateTimeStyle
 }
 
-function useSummary(activity: Activity, participantName?: string) {
+function useSummary(
+  activity: Activity,
+  participantName?: string,
+  expenseTitleOverride?: string,
+) {
   const t = useTranslations('Activity')
   const participant = participantName ?? t('someone')
-  const expense = activity.data ?? ''
+  const expense = expenseTitleOverride ?? activity.data ?? ''
 
   const tr = (key: string) =>
     t.rich(key, {
@@ -52,7 +56,24 @@ export function ActivityItem({
   const locale = useLocale()
 
   const expenseExists = activity.expense !== undefined
-  const summary = useSummary(activity, participant?.name)
+  let expenseTitle = activity.data ?? ''
+  let importDate: string | undefined
+  if (activity.participantId === null && activity.data?.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(activity.data) as { title?: string; importDate?: string }
+      if (typeof parsed.title === 'string') expenseTitle = parsed.title
+      if (typeof parsed.importDate === 'string') importDate = parsed.importDate
+    } catch {
+      // fall back to defaults if parsing fails
+    }
+  }
+
+  const participantDisplay =
+    participant?.name ??
+    (activity.participantId === null
+      ? `Import (${formatDate(importDate ? new Date(importDate) : activity.time, locale, { dateStyle: 'medium' })})`
+      : undefined)
+  const summary = useSummary(activity, participantDisplay, expenseTitle)
 
   return (
     <div
