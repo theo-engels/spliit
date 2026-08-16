@@ -38,10 +38,17 @@ Spliit is a free and open source alternative to Splitwise. You can either use th
 The project is open to contributions. Feel free to open an issue or even a pull-request! 
 Join the discussion in [the Spliit Discord server](https://discord.gg/YSyVXbwvSY).
 
-If you want to contribute financially and help us keep the application free and without ads, you can also:
+### Contribute financially
 
-- 💜 [Sponsor me (Sebastien)](https://github.com/sponsors/scastiel), or
-- 💙 [Make a small one-time donation](https://donate.stripe.com/28o3eh96G7hH8k89Ba).
+Spliit is free, open source, and has no ads. Hosting, database and API costs are
+paid for by donations. If you want to help keep it that way, you can:
+
+- 🧡 [Support us on Open Collective](https://opencollective.com/spliit) — recurring or one-time,
+  with a public and transparent ledger of what comes in and what it is spent on, or
+- 💜 [Sponsor me (Sebastien)](https://github.com/sponsors/scastiel).
+
+Contributions of any size are appreciated, and so is simply telling people about
+the project.
 
 ### Translation
 
@@ -61,12 +68,97 @@ Here is the current state of translation:
 4. Run `npm install` to install dependencies. This will also apply database migrations and update Prisma Client.
 5. Run `npm run dev` to start the development server
 
+## End-to-end tests
+
+The Playwright suite in `e2e/` drives a real browser against the app running in
+Docker, so it exercises the same image users deploy. It needs Docker and a free
+port 3000, and nothing else — the stack builds itself from your checkout and
+throws its database away afterwards.
+
+```sh
+npm run e2e
+```
+
+That builds the image, starts app + PostgreSQL from `compose.e2e.yaml`, waits
+for `/api/health/readiness`, runs the suite and tears everything down. It never
+touches your development stack or `./postgres-data`.
+
+While writing tests it is quicker to keep the stack up:
+
+```sh
+npm run e2e:up                  # build and start, then leave it running
+npm run e2e:test -- --ui        # iterate (also --headed, --grep, --debug)
+npm run e2e:report              # open the HTML report of the last run
+npm run e2e:down                # stop and delete the test database
+```
+
+`--ui` opens Playwright's UI mode, where you can pick tests, watch them run and
+step through a trace. It does not start the stack itself, so run `npm run e2e:up`
+first.
+
+If port 3000 is already taken — by `npm run dev`, for instance — set
+`E2E_HOST_PORT` on every command of the session, including the test run:
+
+```sh
+E2E_HOST_PORT=3100 npm run e2e             # one-shot
+E2E_HOST_PORT=3100 npm run e2e:up          # or, for the iteration loop
+E2E_HOST_PORT=3100 npm run e2e:test -- --ui
+E2E_HOST_PORT=3100 npm run e2e:down
+```
+
+The same suite runs in GitHub Actions from the **E2E** workflow, which can be
+triggered manually and runs automatically on release tags.
+
 ## Run in a container
 
 1. Run `npm run build-image` to build the docker image from the Dockerfile
 2. Copy the file `container.env.example` as `container.env`
 3. Run `npm run start-container` to start the postgres and the spliit2 containers
 4. You can access the app by browsing to http://localhost:3000
+
+## Run with Docker compose
+
+This is a sample `docker-compose.yml` file that you can use to deploy this web app.
+
+```yaml
+name: spliit
+
+services:
+  app:
+    image: ghcr.io/spliit-app/spliit:latest
+    user: "1000:1000" # change to your user id or remove if you want root
+    ports:
+      - "8080:3000/tcp"
+    environment:
+      POSTGRES_PRISMA_URL: postgresql://spliit:spliit@database:5432/spliit
+      POSTGRES_URL_NON_POOLING: postgresql://spliit:spliit@database:5432/spliit
+    volumes:
+      - ./app/cache:/usr/app/.next/cache
+    depends_on:
+      - database
+    networks:
+      - spliit
+
+  database:
+    image: postgres:17.3
+    user: "1000:1000" # same as above
+    environment:
+      POSTGRES_USER: spliit
+      POSTGRES_PASSWORD: spliit
+      POSTGRES_DB: spliit
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+    networks:
+      - spliit
+
+networks:
+  spliit:
+```
+
+The web app will then be available on your host at http://localhost:8080/.
+
+You can use named volumes in place of bind mounts if you prefer not having
+data stored inside local directories.
 
 ## Health check
 
@@ -121,6 +213,58 @@ You can offer users to automatically deduce the expense category from the title.
 NEXT_PUBLIC_ENABLE_CATEGORY_EXTRACT=true
 OPENAI_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
+
+### Analytics
+
+Spliit can report anonymous usage events to an analytics service. **It is disabled by default**: nothing is loaded and nothing is sent unless you select a provider.
+
+Select one with `ANALYTICS_PROVIDER`. The variables are read on the server, so a single Docker image can be configured when the container starts.
+
+#### `console` — see what would be reported
+
+Logs every event to the browser console and sends nothing anywhere. Useful while developing, and the shortest example of what a provider looks like.
+
+```.env
+ANALYTICS_PROVIDER=console
+```
+
+#### `plausible`
+
+Reports to [Plausible](https://plausible.io), a privacy-friendly, cookie-free analytics service. No extra dependency is installed: the provider is a script tag and a function call.
+
+```.env
+ANALYTICS_PROVIDER=plausible
+PLAUSIBLE_DOMAIN=your-domain.com
+```
+
+For a self-hosted Plausible instance, point at it with `PLAUSIBLE_HOST`:
+
+```.env
+PLAUSIBLE_HOST=https://plausible.your-domain.com
+```
+
+Ad blockers drop requests to known analytics hosts. To avoid that, serve the script and the event endpoint from your own origin by adding [rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites) in `next.config.mjs` and pointing the provider at them:
+
+```.env
+PLAUSIBLE_SCRIPT_URL=/js/script.manual.js
+PLAUSIBLE_API_URL=/proxy/api/event
+```
+
+#### What is reported
+
+Pageviews for a handful of pages, and one event per significant action: creating and updating a group, creating, updating and deleting an expense, attaching a document, scanning a receipt, and exporting expenses.
+
+**Group and expense IDs are never sent.** They are the capability to read someone's group, so `/groups/<id>/expenses` is reported as `/groups/[groupId]/expenses`. Anonymization happens in one place, `anonymizePath` in `src/lib/analytics/`, between the call sites and every provider, and the event types forbid properties that are not explicitly declared — so leaking an ID is a compile error rather than a review question.
+
+Pages are tracked explicitly, with `<TrackPage path="…" />`. A new route reports nothing until someone adds it, which keeps that a deliberate decision.
+
+This is unrelated to the group activity log (the _Activity_ tab), which is stored in your own database and is a product feature rather than analytics.
+
+#### Adding a provider
+
+Providers live in `src/lib/analytics/providers/`. Copy `console.tsx`, then register the new one in three places: `provider-ids.ts`, `registry.ts`, and `config.ts` (to map its environment variables to options). The last two are type-checked against the first, so `npm run check-types` tells you exactly what is missing.
+
+A provider supplies a transport — where events go — and optionally a `Script` component if it needs to load an SDK.
 
 ## License
 
